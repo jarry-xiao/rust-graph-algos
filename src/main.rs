@@ -13,7 +13,7 @@ mod priority_queue;
 mod graph;
 
 
-fn dijkstra<T>(g: SparseGraph<T>, src: T) -> HashMap<T, f32>
+fn dijkstra<T>(g: &SparseGraph<T>, src: T) -> HashMap<T, f32>
     where T: Hash + Copy + Eq + Debug + Display
 {
     let mut to_visit = build_priority_queue(None, None);
@@ -32,6 +32,39 @@ fn dijkstra<T>(g: SparseGraph<T>, src: T) -> HashMap<T, f32>
                     distances.insert(*neighbor.id(), updated_dist);
                     to_visit.push(Vertex{value: updated_dist, id: *neighbor.id()});
                 }
+            }
+        }
+    }
+    return distances;
+}
+
+fn bellman<T>(g: &SparseGraph<T>, src: T) -> HashMap<T, f32>
+    where T: Hash + Copy + Eq + Debug + Display
+{
+    let mut distances = HashMap::new();
+    distances.insert(src, 0.0);
+    for _ in 0..g.size() {
+        for node in g.nodes() {
+            if g.neighbors(node).is_none() {
+                continue;
+            }
+            for &Edge{weight, from: _, to} in g.neighbors(node).unwrap() {
+                let updated_dist = distances.get(&node).unwrap_or(&std::f32::INFINITY) + weight;
+                if updated_dist < *distances.get(&to).unwrap_or(&std::f32::INFINITY) {
+                    distances.insert(to, updated_dist);
+                }
+            }
+        }
+    }
+    // Run the algo to check for negative cycles
+    for node in g.nodes() {
+        if g.neighbors(node).is_none() {
+            continue;
+        }
+        for &Edge{weight, from: _, to} in g.neighbors(node).unwrap() {
+            let updated_dist = distances.get(&node).unwrap_or(&std::f32::INFINITY) + weight;
+            if updated_dist < *distances.get(&to).unwrap_or(&std::f32::INFINITY) {
+                distances.insert(to, std::f32::NEG_INFINITY);
             }
         }
     }
@@ -75,8 +108,17 @@ fn main() {
     edges.push(Edge{weight: 0.8, from: 1, to: 8});
     edges.push(Edge{weight: 1.2, from: 1, to: 9});
     g.connect_all(edges);
-    let distances = dijkstra(g, 0);
-    for (node, dist) in distances {
-        println!("Distance from 0 to {0}: {1}", node, dist);
+    let distances = dijkstra(&g, 0);
+    let mut distance_vec : Vec<(&i32, &f32)> = distances.iter().collect();
+    distance_vec.sort_by(|a, b| a.0.cmp(b.0));
+    for (node, dist) in distance_vec {
+        println!("Distance from 0 to {0}: {1} (dijkstra)", node, dist);
+    }
+
+    let distances = bellman(&g, 0);
+    let mut distance_vec : Vec<(&i32, &f32)> = distances.iter().collect();
+    distance_vec.sort_by(|a, b| a.0.cmp(b.0));
+    for (node, dist) in distance_vec {
+        println!("Distance from 0 to {0}: {1} (bellman)", node, dist);
     }
 }

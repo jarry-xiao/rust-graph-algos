@@ -78,6 +78,14 @@ impl<T> SparseGraph<T>
         return self.edges.get(&node);
     }
 
+    pub fn nodes(&self) -> Vec<T> {
+        return self.edges.iter().map(|(k, v)| *k).collect();
+    }
+
+    pub fn size(&self) -> usize {
+        return self.edges.len();
+    }
+
 }
 
 // Dense matrix-based graph
